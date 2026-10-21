@@ -1,0 +1,39 @@
+
+# Java and Maven
+*.class
+target/
+build/
+.mvn/wrapper/maven-wrapper.jar
+
+# Keep Maven wrapper configuration
+!.mvn/wrapper/maven-wrapper.properties
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.sts4-cache/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Secrets and local environment configuration
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+
+# Logs
+*.log
+logs/
+
+# Database backups
+*.sql
+*.dump
+*.backup

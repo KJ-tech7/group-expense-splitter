@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Expense Splitter</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            color: #1e293b;
+        }
+
+        header {
+            background: #172554;
+            color: white;
+            padding: 26px 7%;
+        }
+
+        header h1 { margin: 0 0 8px; }
+        header p { margin: 0; color: #cbd5e1; }
+
+        main {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            margin-bottom: 20px;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px #0f172a0d;
+        }
+
+        h2 { margin-top: 0; }
+
+        .group {
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            margin-top: 12px;
+        }
+
+        .members, .muted { color: #64748b; }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 14px 0 6px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 12px 8px 0 0;
+            background: #1d4ed8;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover { background: #1e40af; }
+        button.secondary { background: #475569; }
+
+        .message {
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            overflow-wrap: anywhere;
+        }
+
+        .success { display: block; background: #dcfce7; color: #166534; }
+        .error { display: block; background: #fee2e2; color: #991b1b; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background: #eff6ff;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 24px;
+            margin-top: 8px;
+        }
+
+        .expense-row, .result-row {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 13px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .amount { font-weight: bold; white-space: nowrap; }
+        .hidden { display: none; }
+        .empty { color: #64748b; }
+
+        .member-input-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .member-input-row input { flex: 1; }
+
+        footer {
+            text-align: center;
+            color: #64748b;
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .card { padding: 17px; }
+            .expense-row, .result-row { align-items: flex-start; }
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <h1>Group Expense Splitter</h1>
+    <p>Track shared expenses. Calculate balances. Settle up easily.</p>
+</header>
+
+<main>
+    <section class="card">
+        <h2>Create a New Group</h2>
+        <p class="muted">Create a group for a trip, flatmates, friends, or any shared expense.</p>
+
+        <form id="groupForm">
+            <label for="groupName">Group Name</label>
+            <input id="groupName" required maxlength="100"
+                   placeholder="e.g. College Trip">
+
+            <label>Members</label>
+            <div id="newMembers">
+                <div class="member-input-row">
+                    <input class="new-member" required maxlength="100"
+                           placeholder="Member name (e.g. Alice)">
+                    <button type="button" class="secondary"
+                            onclick="removeMember(this)">Remove</button>
+                </div>
+                <div class="member-input-row">
+                    <input class="new-member" required maxlength="100"
+                           placeholder="Member name (e.g. Bob)">
+                    <button type="button" class="secondary"
+                            onclick="removeMember(this)">Remove</button>
+                </div>
+            </div>
+
+            <button type="button" class="secondary" onclick="addMemberField()">
+                + Add Another Member
+            </button>
+            <br>
+            <button type="submit">Create Group</button>
+        </form>
+
+        <div id="groupMessage" class="message" role="status"></div>
+    </section>
+
+    <section class="card">
+        <h2>Your Expense Groups</h2>
+
+        <p class="empty" th:if="${#lists.isEmpty(groups)}">
+            No groups found yet. Create your first group above.
+        </p>
+
+        <div class="group" th:each="group : ${groups}">
+            <h3 th:text="${group.name}">Goa Trip</h3>
+
+            <p>
+                <strong>Group ID:</strong>
+                <span th:text="${group.id}">1</span>
+            </p>
+
+            <p class="members">
+                <strong>Members:</strong>
+                <span th:text="${#strings.listJoin(group.members, ', ')}">A, B, C</span>
+            </p>
+
+            <button type="button"
+                    th:attr="data-id=${group.id},data-members=${#strings.listJoin(group.members, ',')}"
+                    onclick="selectGroup(this)">
+                Manage Expenses
+            </button>
+        </div>
+    </section>
+
+    <section id="workspace" class="hidden">
+        <div class="stats">
+            <div class="stat">Total Expenses<strong id="totalAmount">₹0.00</strong></div>
+            <div class="stat">Number of Expenses<strong id="expenseCount">0</strong></div>
+            <div class="stat">Selected Group<strong id="selectedGroupName">-</strong></div>
+        </div>
+
+        <section class="card">
+            <h2>Add an Expense</h2>
+            <form id="expenseForm">
+                <label for="description">Description</label>
+                <input id="description" required maxlength="200" placeholder="e.g. Dinner">
+
+                <label for="amount">Amount (₹)</label>
+                <input id="amount" type="number" min="0.01" step="0.01" required>
+
+                <label for="paidBy">Paid By</label>
+                <select id="paidBy" required></select>
+
+                <label>Shared By</label>
+                <p class="muted">Select everyone who shares this expense.</p>
+                <div id="sharedByOptions"></div>
+
+                <button type="submit">Add Expense</button>
+            </form>
+            <div id="formMessage" class="message" role="status"></div>
+        </section>
+
+        <section class="card">
+            <h2>Expense History</h2>
+            <button type="button" class="secondary" onclick="loadExpenses()">Refresh Expenses</button>
+            <div id="expensesList"><p class="empty">Select a group to view expenses.</p></div>
+        </section>
+
+        <section class="card">
+            <h2>Balances</h2>
+            <p class="muted">Positive means a member should receive money; negative means they owe money.</p>
+            <button type="button" onclick="loadBalances()">View Balances</button>
+            <div id="balancesList"></div>
+        </section>
+
+        <section class="card">
+            <h2>Suggested Settlements</h2>
+            <button type="button" onclick="loadSettlements()">Calculate Settlements</button>
+            <div id="settlementsList"></div>
+        </section>
+    </section>
+</main>
+
+<footer>Group Expense Splitter · Java · Spring Boot · PostgreSQL</footer>
+
+<script>
+    let currentGroupId = null;
+    let currentMembers = [];
+
+    const money = value => new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR"
+    }).format(Number(value) || 0);
+
+    function showMessage(id, text, success) {
+        const element = document.getElementById(id);
+        element.textContent = text;
+        element.className = "message " + (success ? "success" : "error");
+    }
+
+    async function api(url, options = {}) {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...(options.headers || {})
+            }
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `Request failed (${response.status})`);
+        }
+
+        if (response.status === 204) return null;
+
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+    }
+
+    function addMemberField() {
+        const row = document.createElement("div");
+        row.className = "member-input-row";
+
+        const input = document.createElement("input");
+        input.className = "new-member";
+        input.required = true;
+        input.maxLength = 100;
+        input.placeholder = "Member name";
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "secondary";
+        button.textContent = "Remove";
+        button.onclick = () => removeMember(button);
+
+        row.append(input, button);
+        document.getElementById("newMembers").appendChild(row);
+    }
+
+    function removeMember(button) {
+        const rows = document.querySelectorAll("#newMembers .member-input-row");
+        if (rows.length <= 1) {
+            alert("A group must have at least one member.");
+            return;
+        }
+        button.closest(".member-input-row").remove();
+    }
+
+    document.getElementById("groupForm").addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const name = document.getElementById("groupName").value.trim();
+        const members = Array.from(document.querySelectorAll(".new-member"))
+            .map(input => input.value.trim())
+            .filter(Boolean);
+
+        if (!name || members.length === 0) {
+            showMessage("groupMessage", "Enter a group name and at least one member.", false);
+            return;
+        }
+
+        const normalized = members.map(member => member.toLowerCase());
+        if (new Set(normalized).size !== normalized.length) {
+            showMessage("groupMessage", "Each member name must be unique within the group.", false);
+            return;
+        }
+
+        try {
+            await api("/api/groups", {
+                method: "POST",
+                body: JSON.stringify({ name, members })
+            });
+
+            showMessage("groupMessage", "Group created successfully! Refreshing the dashboard...", true);
+            window.setTimeout(() => window.location.reload(), 700);
+        } catch (error) {
+            showMessage("groupMessage", "Could not create group: " + error.message, false);
+        }
+    });
+
+    function selectGroup(button) {
+        currentGroupId = button.dataset.id;
+        currentMembers = button.dataset.members.split(",").map(m => m.trim()).filter(Boolean);
+
+        document.getElementById("workspace").classList.remove("hidden");
+        document.getElementById("selectedGroupName").textContent =
+            button.closest(".group").querySelector("h3").textContent;
+
+        const payer = document.getElementById("paidBy");
+        payer.replaceChildren();
+
+        currentMembers.forEach(member => {
+            const option = document.createElement("option");
+            option.value = member;
+            option.textContent = member;
+            payer.appendChild(option);
+        });
+
+        const sharedBy = document.getElementById("sharedByOptions");
+        sharedBy.replaceChildren();
+
+        currentMembers.forEach(member => {
+            const label = document.createElement("label");
+            label.style.fontWeight = "normal";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.value = member;
+            checkbox.checked = true;
+            checkbox.name = "sharedBy";
+            checkbox.style.width = "auto";
+            checkbox.style.marginRight = "8px";
+
+            label.append(checkbox, document.createTextNode(member));
+            sharedBy.appendChild(label);
+        });
+
+        document.getElementById("balancesList").replaceChildren();
+        document.getElementById("settlementsList").replaceChildren();
+        document.getElementById("formMessage").className = "message";
+
+        loadExpenses();
+        document.getElementById("workspace").scrollIntoView({ behavior: "smooth" });
+    }
+
+    document.getElementById("expenseForm").addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const description = document.getElementById("description").value.trim();
+        const amount = Number(document.getElementById("amount").value);
+        const paidBy = document.getElementById("paidBy").value;
+        const sharedBy = Array.from(
+            document.querySelectorAll('input[name="sharedBy"]:checked')
+        ).map(input => input.value);
+
+        if (!currentGroupId) {
+            showMessage("formMessage", "Select a group first.", false);
+            return;
+        }
+
+        if (!description || !Number.isFinite(amount) || amount <= 0 || !sharedBy.length) {
+            showMessage("formMessage", "Enter a valid description and amount, and select at least one member.", false);
+            return;
+        }
+
+        try {
+            await api(`/api/groups/${currentGroupId}/expenses`, {
+                method: "POST",
+                body: JSON.stringify({ description, amount, paidBy, sharedBy })
+            });
+
+            showMessage("formMessage", "Expense added successfully!", true);
+            document.getElementById("description").value = "";
+            document.getElementById("amount").value = "";
+            await loadExpenses();
+            document.getElementById("balancesList").replaceChildren();
+            document.getElementById("settlementsList").replaceChildren();
+        } catch (error) {
+            showMessage("formMessage", "Could not add expense: " + error.message, false);
+        }
+    });
+
+    async function loadExpenses() {
+        if (!currentGroupId) return;
+
+        const list = document.getElementById("expensesList");
+        list.textContent = "Loading expenses...";
+
+        try {
+            const expenses = await api(`/api/groups/${currentGroupId}/expenses`);
+            list.replaceChildren();
+
+            const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+            document.getElementById("totalAmount").textContent = money(total);
+            document.getElementById("expenseCount").textContent = expenses.length;
+
+            if (!expenses.length) {
+                list.textContent = "No expenses added yet.";
+                list.className = "empty";
+                return;
+            }
+
+            list.className = "";
+
+            expenses.forEach(expense => {
+                const row = document.createElement("div");
+                row.className = "expense-row";
+
+                const details = document.createElement("div");
+                const title = document.createElement("strong");
+                title.textContent = expense.description;
+
+                const payer = document.createElement("div");
+                payer.className = "muted";
+                payer.textContent = `Paid by ${expense.paidBy}`;
+
+                details.append(title, payer);
+
+                const amount = document.createElement("span");
+                amount.className = "amount";
+                amount.textContent = money(expense.amount);
+
+                row.append(details, amount);
+                list.appendChild(row);
+            });
+        } catch (error) {
+            list.textContent = "Could not load expenses: " + error.message;
+        }
+    }
+
+    async function loadBalances() {
+        if (!currentGroupId) return;
+
+        const list = document.getElementById("balancesList");
+        list.textContent = "Loading balances...";
+
+        try {
+            const data = await api(`/api/groups/${currentGroupId}/balances`);
+            list.replaceChildren();
+
+            const entries = Array.isArray(data)
+                ? data
+                : Object.entries(data || {}).map(([member, balance]) => ({ member, balance }));
+
+            if (!entries.length) {
+                list.textContent = "No balances available.";
+                return;
+            }
+
+            entries.forEach(entry => {
+                const member = entry.member ?? entry.name ?? entry.person;
+                const balance = entry.balance ?? entry.amount ?? entry.netBalance;
+
+                const row = document.createElement("div");
+                row.className = "result-row";
+
+                const name = document.createElement("strong");
+                name.textContent = member ?? "Member";
+
+                const value = document.createElement("span");
+                value.className = "amount";
+                value.textContent = money(balance);
+
+                row.append(name, value);
+                list.appendChild(row);
+            });
+        } catch (error) {
+            list.textContent = "Could not load balances: " + error.message;
+        }
+    }
+
+    async function loadSettlements() {
+        if (!currentGroupId) return;
+
+        const list = document.getElementById("settlementsList");
+        list.textContent = "Calculating settlements...";
+
+        try {
+            const data = await api(`/api/groups/${currentGroupId}/settlements`);
+            list.replaceChildren();
+
+            const settlements = Array.isArray(data)
+                ? data
+                : (data.settlements || data.transactions || []);
+
+            if (!settlements.length) {
+                list.textContent = "No settlements needed, or no settlement data was returned.";
+                return;
+            }
+
+            settlements.forEach(settlement => {
+                const from = settlement.from ?? settlement.fromMember ?? settlement.debtor ?? settlement.payer;
+                const to = settlement.to ?? settlement.toMember ?? settlement.creditor ?? settlement.receiver;
+                const amount = settlement.amount ?? settlement.value;
+
+                const row = document.createElement("div");
+                row.className = "result-row";
+
+                const description = document.createElement("span");
+                description.textContent = `${from ?? "Member"} pays ${to ?? "member"}`;
+
+                const value = document.createElement("strong");
+                value.className = "amount";
+                value.textContent = money(amount);
+
+                row.append(description, value);
+                list.appendChild(row);
+            });
+        } catch (error) {
+            list.textContent = "Could not calculate settlements: " + error.message;
+        }
+    }
+</script>
+</body>
+</html>
