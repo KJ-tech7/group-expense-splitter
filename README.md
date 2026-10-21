@@ -4,33 +4,29 @@ A web-based application built with Java and Spring Boot to manage shared group e
 
 ## Features
 
-- **Group Management:** Create groups and add members.
-- **Expense Management:** Record and view expenses for each group.
-- **Balance Calculation:** Calculate how much each member owes or should receive.
-- **Suggested Settlements:** Generate payments between members to settle outstanding balances.
-- **Web Dashboard:** Manage groups and expenses through a browser-based interface.
-- **Persistent Storage:** Store application data using PostgreSQL.
+- Create groups and add members.
+- Record and manage group expenses.
+- Calculate how much each member owes or should receive.
+- Generate suggested settlements to reduce the number of payments.
+- Manage groups and expenses through a web dashboard.
+- Store application data using PostgreSQL.
 
-## Tech Stack
+## Technology Stack
 
-- **Language:** Java
-- **Backend:** Spring Boot
-- **Database:** PostgreSQL
-- **Data Access:** Spring Data JPA / Hibernate
-- **Frontend:** HTML, CSS, JavaScript, Thymeleaf (where applicable)
-- **Build Tool:** Maven
-- **Testing:** JUnit and Spring Boot Test
+- Java 21
+- Spring Boot
+- Spring Data JPA and Hibernate
+- PostgreSQL
+- HTML, CSS, JavaScript, and Thymeleaf
+- Maven
+- JUnit and Spring Boot Test
 
 ## Getting Started
 
 ### Prerequisites
 
-Install the following:
-
 - Java 21
 - PostgreSQL
-- Git (optional, for cloning the repository)
-- Maven, or use the included Maven Wrapper
 
 ### 1. Clone the repository
 
@@ -39,17 +35,66 @@ git clone https://github.com/KJ-tech7/group-expense-splitter.git
 cd group-expense-splitter
 ```
 
-### 2. Create the database
+### 2. Configure PostgreSQL
 
-Create a PostgreSQL database named `expense_splitter`, or update the database name to match your local configuration.
+Create a PostgreSQL database named `expense_splitter`.
 
-### 3. Configure database credentials
-
-Open `src/main/resources/application.properties`.
-
-Set your database URL and username, and provide the database password through the `DB_PASSWORD` environment variable.
-
-**PowerShell:**
+Set your database password through the `DB_PASSWORD` environment variable in PowerShell:
 
 ```powershell
-$env:DB_PASSWORD
+$env:DB_PASSWORD = "YOUR_LOCAL_DATABASE_PASSWORD"
+```
+
+Replace the placeholder with your local password. Never commit passwords to GitHub.
+
+### 3. Run the application
+
+On Windows, run:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+Open http://localhost:8082 in your browser.
+
+## How to Use
+
+1. Create a group and add its members.
+2. Add expenses and record who paid.
+3. View the calculated balances.
+4. Review the suggested settlements.
+
+## Project Structure
+
+```text
+group-expense-splitter/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   └── resources/
+│   │       ├── templates/
+│   │       └── application.properties
+│   └── test/
+├── pom.xml
+├── mvnw
+├── mvnw.cmd
+└── README.md
+```
+
+## Future Improvements
+
+- User authentication and authorization
+- Expense categories and filtering
+- Additional automated tests
+- Responsive design improvements
+- Deployment to a hosting platform
+
+## Author
+
+Keshav
+
+GitHub: https://github.com/KJ-tech7
+
+---
+
+Developed as a Java and Spring Boot project demonstrating backend development, database integration, and expense-settlement logic.
